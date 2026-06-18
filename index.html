@@ -1295,9 +1295,24 @@ document.querySelectorAll('.nav button').forEach(btn => btn.addEventListener('cl
 document.getElementById('phaseFilter').addEventListener('change', () => renderCalendar(allEvents));
 document.getElementById('datePicker').addEventListener('change', () => { document.querySelectorAll('#dateNav button').forEach(b => b.classList.toggle('active', b.dataset.date === document.getElementById('datePicker').value)); renderCalendar(allEvents); });
 
-// ─── NO SERVICE WORKER (removed to prevent stale cache issues) ───
-// The page always loads fresh from the network.
-// To install as PWA, use "Add to Home Screen" from browser menu.
+// ─── KILL ALL SERVICE WORKERS (force clean slate) ───
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    for (const reg of regs) {
+      reg.unregister();
+      console.log('Unregistered SW:', reg.scope);
+    }
+    // Also clear all caches
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        for (const key of keys) {
+          caches.delete(key);
+          console.log('Deleted cache:', key);
+        }
+      });
+    }
+  });
+}
 
 // ─── START ───
 init();

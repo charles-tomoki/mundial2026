@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧹 Limpiando cache...</title>
+<style>
+  body { background: #0A0A0A; color: #D4AF37; font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+  .spinner { width: 40px; height: 40px; border: 3px solid rgba(212,175,55,0.2); border-top-color: #D4AF37; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div>
+  <div class="spinner"></div>
+  <h2>🧹 Limpiando cache vieja...</h2>
+  <p style="color:#999;font-size:0.9em;">Esto toma un segundo</p>
+</div>
+<script>
+(async function() {
+  // Kill ALL service workers
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) {
+      await reg.unregister();
+      console.log('Killed SW:', reg.scope);
+    }
+  }
+  // Delete ALL caches
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    for (const key of keys) {
+      await caches.delete(key);
+      console.log('Deleted cache:', key);
+    }
+  }
+  // Clear localStorage related to the app
+  localStorage.removeItem('darkMode');
+  // Don't remove favTeam so user keeps their preference
+  
+  // Redirect to main page with fresh timestamp
+  window.location.href = '/mundial2026/?fresh=' + Date.now();
+})();
+</script>
+</body>
+</html>
