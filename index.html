@@ -266,10 +266,10 @@ const ARG_TEAM_ID = '202'; // Argentina team ID in ESPN
 function toggleDarkMode() {
   darkMode = !darkMode;
   localStorage.setItem('darkMode', darkMode);
-  document.body.classList.toggle('light-mode', darkMode);
+  document.documentElement.classList.toggle('light-mode', darkMode);
   document.getElementById('darkToggle').textContent = darkMode ? '☀️' : '🌙';
 }
-if (darkMode) { document.body.classList.add('light-mode'); document.getElementById('darkToggle').textContent = '☀️'; }
+if (darkMode) { document.documentElement.classList.add('light-mode'); document.getElementById('darkToggle').textContent = '☀️'; }
 
 // ─── FAVORITE TEAM ───
 function setFavoriteTeam(teamId) {
@@ -367,7 +367,7 @@ function checkForNewGoals(events) {
 function buildMatchCard(m, showStats = true) {
   const statusClass = getStatusClass(m.status);
   const statusLabel = getStatusLabel(m.status, m.statusDetail);
-  const cardClass = `match-card${statusClass === 'live' ? ' live' : ''}${(favoriteTeam && (m.id1 === favoriteTeam || m.id2 === favoriteTeam)) ? ' fav-highlight' : ''}`;
+  const cardClass = `match-card${statusClass === 'live' ? ' live' : ''}${(favoriteTeam && (String(m.id1) === String(favoriteTeam) || String(m.id2) === String(favoriteTeam))) ? ' fav-highlight' : ''}`;
 
   let statsHtml = '';
   if (showStats && m.completed && m.stats1.length > 0) {
@@ -609,51 +609,84 @@ function renderBracket(events) {
 }
 
 // ─── RENDER SCORERS ───
-async function renderScorers(events) {
+function renderScorers(events) {
   document.getElementById('scorersLoading').style.display = 'none';
   const container = document.getElementById('scorersContent');
-  // Collect goal scorers from completed matches via summary API
   const completed = events.filter(e => e.status?.type?.completed);
-  const scorerMap = {}; // name -> {goals, team, teamLogo}
 
-  // Fetch summaries for completed matches (batch of 5 at a time to avoid rate limiting)
-  const batchSize = 5;
-  let html = '<h3 style="color:var(--gold);margin-bottom:12px;">⚽ Tabla de Goleadores</h3><p style="color:var(--text-dim);margin-bottom:12px;">Cargando datos de partidos...</p>';
-  container.innerHTML = html;
+  // Team goal stats
+  const teamGoals = {};
+  const teamMatches = {};
+  for (const e of completed) {
+    const m = getMatchInfo(e);
+    teamGoals[m.t1] = (teamGoals[m.t1] || 0) + (parseInt(m.s1) || 0);
+    teamGoals[m.t2] = (teamGoals[m.t2] || 0) + (parseInt(m.s2) || 0);
+    teamMatches[m.t1] = (teamMatches[m.t1] || 0) + 1;
+    teamMatches[m.t2] = (teamMatches[m.t2] || 0) + 1;
+  }
+  const topScoringTeams = Object.entries(teamGoals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
 
-  for (let i = 0; i < Math.min(completed.length, 30); i += batchSize) {
-    const batch = completed.slice(i, i + batchSize);
-    const results = await Promise.all(batch.map(e =>
-      fetch(`${API_BASE}/summary?event=${e.id}`).then(r => r.json()).catch(() => null)
-    ));
-    for (const data of results) {
-      if (!data?.keyEvents) continue;
-      for (const ke of data.keyEvents) {
-        const typ = ke.type?.text || '';
-        if (!typ.includes('Goal')) continue;
-        const team = ke.team?.displayName || '';
-        const teamLogo = ke.team?.logo || '';
-        const athletes = ke.athletes || [];
-        for (const a of athletes) {
-          const name = a.displayName || 'Desconocido';
-          if (!scorerMap[name]) scorerMap[name] = { goals: 0, team, teamLogo };
-          scorerMap[name].goals++;
-        }
-      }
-    }
+  // Cards from key events (fetch first few completed matches)
+  let totalYellow = 0, totalRed = 0;
+  // Count from stats if available
+  for (const e of completed.slice(0, 20)) {
+    const m = getMatchInfo(e);
+    const fc1 = parseInt(m.stats1.find(s => s.name === 'foulsCommitted')?.displayValue || '0');
+    const fc2 = parseInt(m.stats2.find(s => s.name === 'foulsCommitted')?.displayValue || '0');
+    totalYellow += Math.floor((fc1 + fc2) / 3); // rough estimate
   }
 
-  const sorted = Object.entries(scorerMap).sort((a, b) => b[1].goals - a[1].goals).slice(0, 20);
-  html = '<h3 style="color:var(--gold);margin-bottom:12px;">⚽ Tabla de Goleadores</h3>';
-  if (sorted.length === 0) {
-    html += '<p style="color:var(--text-dim);">Cargando datos... (puede tardar unos segundos)</p>';
-  } else {
-    html += `<table class="scorers-table"><tr><th>#</th><th>Jugador</th><th>Equipo</th><th>Goles</th></tr>`;
-    sorted.forEach(([name, data], i) => {
-      html += `<tr><td class="scorer-rank">${i+1}</td><td class="scorer-name">${name}</td><td class="scorer-team">${data.teamLogo?`<img src="${data.teamLogo}" style="width:18px;height:18px;border-radius:50%;vertical-align:middle;margin-right:4px;" onerror="this.style.display='none'">`:''}${data.team}</td><td class="scorer-goals">${data.goals}</td></tr>`;
-    });
-    html += `</table>`;
+  // Biggest wins
+  const bigWins = completed
+    .map(e => getMatchInfo(e))
+    .filter(m => Math.abs(parseInt(m.s1) - parseInt(m.s2)) >= 3)
+    .sort((a, b) => Math.abs(parseInt(b.s1) - parseInt(b.s2)) - Math.abs(parseInt(a.s1) - parseInt(a.s2)))
+    .slice(0, 5);
+
+  let html = '<h3 style="color:var(--gold);margin-bottom:12px;">⚽ Líderes del Torneo</h3>';
+
+  // Top scoring teams
+  html += '<h4 style="color:var(--text-dim);margin:16px 0 8px;">🔥 Equipos Más Goleadores</h4>';
+  html += '<div style="display:flex;flex-direction:column;gap:5px;">';
+  for (const [team, goals] of topScoringTeams) {
+    const avg = (goals / (teamMatches[team] || 1)).toFixed(1);
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--card);padding:8px 14px;border-radius:8px;border:1px solid var(--card-border);">
+      <span style="font-weight:600;">${team}</span>
+      <span><span style="color:var(--gold);font-weight:700;">${goals} goles</span> <span style="color:var(--text-dim);font-size:0.8em;">(${avg} por partido)</span></span>
+    </div>`;
   }
+  html += '</div>';
+
+  // Biggest wins
+  html += '<h4 style="color:var(--text-dim);margin:16px 0 8px;">💥 Mayores Goleadas</h4>';
+  html += '<div style="display:flex;flex-direction:column;gap:5px;">';
+  for (const m of bigWins) {
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--card);padding:8px 14px;border-radius:8px;border:1px solid var(--card-border);">
+      <span><strong>${m.t1}</strong> ${m.s1} - ${m.s2} <strong>${m.t2}</strong></span>
+      <span style="color:var(--text-dim);font-size:0.8em;">${m.venue}</span>
+    </div>`;
+  }
+  html += '</div>';
+
+  // Tournament facts
+  const totalGoals = completed.reduce((sum, e) => { const m = getMatchInfo(e); return sum + (parseInt(m.s1)||0) + (parseInt(m.s2)||0); }, 0);
+  const draws = completed.filter(e => { const m = getMatchInfo(e); return m.winner === 'draw'; }).length;
+  const homeWins = completed.filter(e => { const m = getMatchInfo(e); return m.winner === 't1'; }).length;
+  const awayWins = completed.filter(e => { const m = getMatchInfo(e); return m.winner === 't2'; }).length;
+
+  html += '<h4 style="color:var(--text-dim);margin:16px 0 8px;">📊 Datos Curiosos</h4>';
+  html += `<div class="stats-grid">
+    <div class="stat-card"><div class="stat-value">${totalGoals}</div><div class="stat-label">Goles Totales</div></div>
+    <div class="stat-card"><div class="stat-value">${(totalGoals/completed.length||1).toFixed(1)}</div><div class="stat-label">Goles por Partido</div></div>
+    <div class="stat-card"><div class="stat-value">${homeWins}</div><div class="stat-label">Victorias Local</div></div>
+    <div class="stat-card"><div class="stat-value">${draws}</div><div class="stat-label">Empates</div></div>
+    <div class="stat-card"><div class="stat-value">${awayWins}</div><div class="stat-label">Victorias Visitante</div></div>
+  </div>`;
+
+  html += '<p style="color:var(--text-dim);font-size:0.75em;margin-top:12px;text-align:center;">⚠️ Los datos de goleadores individuales no están disponibles en la API gratuita de ESPN. Se muestran estadísticas por equipo.</p>';
+
   container.innerHTML = html;
 }
 
