@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🏆 Mundial FIFA 2026 — Modo Mundial v3.0</title>
+<title>🏆 Mundial FIFA 2026 — Modo Mundial v4.0</title>
 <meta name="description" content="Mundial FIFA 2026 - Resultados en vivo, videos, fotos, odds, formaciones, mapa de estadios y más">
 <meta name="theme-color" content="#1B5E20">
 <meta property="og:title" content="🏆 Mundial FIFA 2026 — Modo Mundial">
@@ -1295,11 +1295,47 @@ document.querySelectorAll('.nav button').forEach(btn => btn.addEventListener('cl
 document.getElementById('phaseFilter').addEventListener('change', () => renderCalendar(allEvents));
 document.getElementById('datePicker').addEventListener('change', () => { document.querySelectorAll('#dateNav button').forEach(b => b.classList.toggle('active', b.dataset.date === document.getElementById('datePicker').value)); renderCalendar(allEvents); });
 
-// ─── PWA SERVICE WORKER ───
+// ─── PWA SERVICE WORKER (v4 - network-first, no stale cache) ───
 if ('serviceWorker' in navigator) {
-  const swCode = `const CACHE='mundial2026-v3';self.addEventListener('install',e=>{self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(clients.claim())});self.addEventListener('fetch',e=>{if(e.request.url.includes('espn.com')){e.respondWith(fetch(e.request).then(r=>{const clone=r.clone();caches.open(CACHE).then(c=>c.put(e.request,clone));return r}).catch(()=>caches.match(e.request)))}else{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(r2=>{const clone=r2.clone();caches.open(CACHE).then(c=>c.put(e.request,clone));return r2})))}})`;
-  const blob = new Blob([swCode], {type: 'application/javascript'});
-  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+  // Kill any old service workers first
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    for (const reg of regs) reg.unregister();
+  }).finally(() => {
+    const swCode = `
+const CACHE = 'mundial2026-v4';
+const ESPN_HOST = 'site.api.espn.com';
+const CDN_HOSTS = ['unpkg.com', 'basemaps.cartocdn.com'];
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  // Purge old caches
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
+  e.waitUntil(clients.claim());
+});
+
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  // For ESPN API and CDN assets: network-first, cache as fallback
+  if (url.hostname === ESPN_HOST || CDN_HOSTS.some(h => url.hostname.includes(h))) {
+    e.respondWith(
+      fetch(e.request).then(r => {
+        const clone = r.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return r;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // For our own HTML/JS: ALWAYS network-first, no cache serving
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+});
+`;
+    const blob = new Blob([swCode], {type: 'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+  });
 }
 
 // ─── START ───
