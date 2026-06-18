@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Media 500 — Calculadora de Inversión OOH</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #21262d;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text2: #8b949e;
+            --accent: #58a6ff;
+            --accent2: #79c0ff;
+            --green: #3fb950;
+            --red: #f85149;
+            --orange: #d2991d;
+            --radius: 8px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 16px; margin-bottom: 32px;
+            padding-bottom: 20px; border-bottom: 1px solid var(--border);
+        }
+        .header h1 { font-size: 1.6rem; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+        .header .brand { color: var(--accent); }
+        .header .date { font-size: 0.8rem; color: var(--text2); }
+
+        .form-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+        .form-grid {
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 12px; align-items: end;
+        }
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr 1fr; }
+            .form-grid .btn-full { grid-column: 1 / -1; }
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); }
+        .form-group input, .form-group select {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 6px; color: var(--text); padding: 10px 14px;
+            font-size: 0.95rem; font-family: inherit; transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+        .form-group input[type="number"] { font-variant-numeric: tabular-nums; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 20px; border-radius: 6px; font-size: 0.9rem; font-weight: 600;
+            font-family: inherit; cursor: pointer; border: 1px solid transparent;
+            transition: all 0.15s; white-space: nowrap; height: 42px;
+        }
+        .btn-primary { background: #238636; color: #fff; border-color: #238636; }
+        .btn-primary:hover { background: #2ea043; border-color: #2ea043; }
+        .btn-outline { background: transparent; color: var(--text); border-color: var(--border); }
+        .btn-outline:hover { background: var(--surface2); border-color: var(--text2); }
+        .btn-danger {
+            background: transparent; color: var(--red); border-color: transparent;
+            padding: 4px 8px; height: auto; font-size: 0.8rem;
+        }
+        .btn-danger:hover { background: rgba(248,81,73,0.1); }
+        .btn-sm { padding: 4px 10px; height: auto; font-size: 0.78rem; }
+
+        .table-card {
+            background: #ffffff; border: 1px solid #d0d5dd;
+            border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        thead { background: #0a1628; }
+        th {
+            padding: 12px 16px; text-align: left; font-size: 0.72rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.6px; color: #d0d8e8;
+            border-bottom: 2px solid #1670b8;
+        }
+        th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        td { padding: 10px 16px; border-bottom: 1px solid #e2e6ed; color: #1a1a2e; }
+        tr.row-even td { background: #f5f7fa; }
+        tr.row-odd td { background: #ffffff; }
+        td input {
+            background: transparent; border: 1px solid transparent; border-radius: 4px;
+            color: #1a1a2e; padding: 4px 6px; font-size: 0.9rem; font-family: inherit;
+            font-variant-numeric: tabular-nums; width: 110px; text-align: right; transition: all 0.15s;
+        }
+        td input:focus { outline: none; border-color: #1670b8; background: #e8f0f8; }
+        td input:hover { border-color: #c0ccda; }
+        .total-row td {
+            font-weight: 700; font-size: 1rem;
+            background: #008fd5; color: #ffffff;
+            border-top: 3px solid #1670b8; border-bottom: none;
+        }
+        .total-row .label { color: #ffffff; }
+        .empty-state { text-align: center; padding: 48px 24px; color: #8896a8; }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+        .actions-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 12px; margin-top: 16px;
+        }
+        .summary { font-size: 0.85rem; color: var(--text2); }
+        .summary strong { color: var(--text); }
+        .disclaimer { font-size: 0.72rem; color: var(--text2); margin-top: 12px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1><span class="brand">Media 500</span> — Calculadora de Inversión</h1>
+                <p style="color: var(--text2); font-size: 0.85rem; margin-top: 2px;">Publicidad Out of Home · Argentina · Tarifario Enero 2026</p>
+            </div>
+            <div class="date" id="currentDate"></div>
+        </div>
+
+        <!-- Formulario -->
+        <div class="form-card">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Formato</label>
+                    <select id="selFormato">
+                        <option value="">— Seleccionar —</option>
+                        <optgroup label="🚌 Colectivos">
+                            <option value="Colectivo — Luneta Premium CABA" data-exh="130000" data-prod="48000">Colectivo — Luneta Premium CABA</option>
+                            <option value="Colectivo — Luneta Standard GBA" data-exh="110000" data-prod="48000">Colectivo — Luneta Standard GBA</option>
+                            <option value="Colectivo — Diferencial" data-exh="2200000" data-prod="1100000">Colectivo — Diferencial</option>
+                            <option value="Colectivo — Luneta Interior (Córdoba/Rosario/Mendoza/Santa Fe)" data-exh="140000" data-prod="55000">Colectivo — Luneta Interior</option>
+                            <option value="Colectivo — Cenefas Interiores (4 por colectivo)" data-exh="110000" data-prod="38000">Colectivo — Cenefas Interiores (x4)</option>
+                            <option value="Colectivo — Back Full" data-exh="300000" data-prod="150000">Colectivo — Back Full</option>
+                            <option value="Colectivo — Panorámico (ventanas + luneta)" data-exh="1300000" data-prod="800000">Colectivo — Panorámico</option>
+                            <option value="Colectivo — Luneta LED" data-exh="380000" data-prod="0">Colectivo — Luneta LED</option>
+                            <option value="Colectivo — Totems UBA" data-exh="300000" data-prod="0">Colectivo — Totems UBA</option>
+                        </optgroup>
+                        <optgroup label="🚆 Trenes">
+                            <option value="Tren — Ploteo Parcial (7 coches Puertas y Ventanas)" data-exh="3000000" data-prod="8500000">Tren — Ploteo Parcial (7 coches)</option>
+                            <option value="Tren — Ploteo Full (1 coche full)" data-exh="2600000" data-prod="2300000">Tren — Ploteo Full (1 coche)</option>
+                            <option value="Tren — Ploteo Mixto (1 Full + 6 P y V)" data-exh="5300000" data-prod="10000000">Tren — Ploteo Mixto (1F+6P)</option>
+                            <option value="Tren — Ploteo Full Formación Completa (7 coches full)" data-exh="15000000" data-prod="16000000">Tren — Formación Completa (7 full)</option>
+                            <option value="Tren — Cenefas Interiores (4 x coche, 2x0.30m)" data-exh="200000" data-prod="78000">Tren — Cenefas Int. (2x0.30m)</option>
+                            <option value="Tren — Cenefas Interiores (4 x coche, 1x0.15m)" data-exh="150000" data-prod="55000">Tren — Cenefas Int. (1x0.15m)</option>
+                            <option value="Tren — Ploteo Parcial (3 coches Puertas y Ventanas)" data-exh="1400000" data-prod="3500000">Tren — Ploteo Parcial (3 coches)</option>
+                            <option value="Tren — Ploteo Mixto (1 Full + 2 Puertas y Ventanas)" data-exh="3200000" data-prod="4800000">Tren — Ploteo Mixto (1F+2P)</option>
+                            <option value="Tren — Ploteo Full (3 coches full)" data-exh="7000000" data-prod="5700000">Tren — Ploteo Full (3 coches)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cantidad</label>
+                    <input type="number" id="cantidad" value="1" min="1" step="1">
+                </div>
+                <div class="form-group">
+                    <label>P.U. Exhibición ($)</label>
+                    <input type="text" id="puExh" value="" placeholder="Auto">
+                </div>
+                <div class="form-group">
+                    <label>P.U. Producción ($)</label>
+                    <input type="text" id="puProd" value="" placeholder="Auto">
+                </div>
+                <div class="form-group btn-full">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" id="btnAgregar" onclick="agregarFila()">+ Agregar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 85px;">Cantidad</th>
+                        <th>Detalle (Formato)</th>
+                        <th class="num" style="width: 150px;">P.U. Exhibición</th>
+                        <th class="num" style="width: 150px;">P.U. Producción</th>
+                        <th class="num" style="width: 150px;">Total Exhibición</th>
+                        <th class="num" style="width: 150px;">Total Producción</th>
+                        <th style="width: 40px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <div class="empty-state" id="emptyState">
+                <div class="icon">📋</div>
+                <p>Seleccioná un formato y agregalo a la tabla</p>
+                <p style="font-size:0.8rem;">Los precios se autocompletan y podés modificarlos</p>
+            </div>
+        </div>
+
+        <div class="actions-bar">
+            <div class="summary"><strong id="countRows">0</strong> ítems</div>
+            <div>
+                <button class="btn btn-outline btn-sm" onclick="descargarImagen()">📸 Descargar como imagen</button>
+                <button class="btn btn-outline btn-sm" onclick="exportarCSV()">📥 Exportar CSV</button>
+                <button class="btn btn-outline btn-sm" onclick="limpiarTabla()" style="color: var(--red); border-color: var(--red); margin-left: 8px;">🗑️ Limpiar</button>
+            </div>
+        </div>
+        <div class="disclaimer">* Precios de Exhibición Mensual. No incluye IVA. Costos de producción pueden variar.</div>
+    </div>
+
+    <script>
+        let filas = [];
+
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-AR', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        document.getElementById('selFormato').addEventListener('change', function () {
+            const opt = this.selectedOptions[0];
+            if (opt && opt.dataset.exh) {
+                document.getElementById('puExh').value = fmtARS(Number(opt.dataset.exh));
+                document.getElementById('puProd').value = fmtARS(Number(opt.dataset.prod));
+            } else {
+                document.getElementById('puExh').value = '';
+                document.getElementById('puProd').value = '';
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT') agregarFila();
+        });
+
+        function agregarFila() {
+            const formato = document.getElementById('selFormato').value;
+            const cantidad = parseInt(document.getElementById('cantidad').value) || 1;
+            const puExh = parseArg(document.getElementById('puExh').value);
+            const puProd = parseArg(document.getElementById('puProd').value);
+
+            if (!formato) { alert('Seleccioná un formato primero.'); return; }
+            if (cantidad < 1) { alert('La cantidad debe ser al menos 1.'); return; }
+
+            filas.push({ id: Date.now(), cantidad, formato, puExh, puProd });
+            renderizarTabla();
+            limpiarFormulario();
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('selFormato').value = '';
+            document.getElementById('cantidad').value = '1';
+            document.getElementById('puExh').value = '';
+            document.getElementById('puProd').value = '';
+            document.getElementById('selFormato').focus();
+        }
+
+        function renderizarTabla() {
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            const countRows = document.getElementById('countRows');
+            countRows.textContent = filas.length;
+
+            if (filas.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            let totalExh = 0, totalProd = 0, html = '';
+
+            filas.forEach((fila, idx) => {
+                const tExh = fila.cantidad * fila.puExh;
+                const tProd = fila.cantidad * fila.puProd;
+                totalExh += tExh;
+                totalProd += tProd;
+                const rowClass = idx % 2 === 0 ? 'row-even' : 'row-odd';
+
+                html += `<tr class="${rowClass}" data-id="${fila.id}">
+                    <td><input type="number" value="${fila.cantidad}" min="1" step="1"
+                        onchange="actualizarFila(${idx},'cantidad',this.value)" style="width:65px;"></td>
+                    <td>${fila.formato}</td>
+                    <td class="num"><input type="text" value="${fmtARS(fila.puExh)}"
+                        onchange="actualizarFila(${idx},'puExh',parseArg(this.value))"></td>
+                    <td class="num"><input type="text" value="${fmtARS(fila.puProd)}"
+                        onchange="actualizarFila(${idx},'puProd',parseArg(this.value))"></td>
+                    <td class="num" style="color: var(--accent2); font-weight: 600;">${fmtARS(tExh)}</td>
+                    <td class="num" style="color: var(--accent2); font-weight: 600;">${fmtARS(tProd)}</td>
+                    <td><button class="btn btn-danger" onclick="eliminarFila(${idx})" title="Eliminar">✕</button></td>
+                </tr>`;
+            });
+
+            html += `<tr class="total-row">
+                <td colspan="2" class="label">TOTAL GENERAL</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="num" style="font-size:1.1rem;">${fmtARS(totalExh)}</td>
+                <td class="num" style="font-size:1.1rem;">${fmtARS(totalProd)}</td>
+                <td></td>
+            </tr>`;
+
+            tbody.innerHTML = html;
+        }
+
+        function actualizarFila(idx, campo, valor) {
+            if (campo === 'cantidad') { const v = parseInt(valor); if (isNaN(v) || v < 1) return; filas[idx].cantidad = v; }
+            else if (campo === 'puExh' || campo === 'puProd') { if (isNaN(valor)) return; filas[idx][campo] = valor; }
+            renderizarTabla();
+        }
+
+        function eliminarFila(idx) { if (confirm('¿Eliminar esta fila?')) { filas.splice(idx, 1); renderizarTabla(); } }
+
+        function limpiarTabla() {
+            if (filas.length === 0) return;
+            if (confirm('¿Eliminar TODAS las filas?')) { filas = []; renderizarTabla(); }
+        }
+
+        function exportarCSV() {
+            if (filas.length === 0) { alert('No hay datos para exportar.'); return; }
+            let csv = 'Cantidad,Formato,P.U. Exhibición,P.U. Producción,Total Exhibición,Total Producción\n';
+            let totalExh = 0, totalProd = 0;
+            filas.forEach(f => {
+                const te = f.cantidad * f.puExh, tp = f.cantidad * f.puProd;
+                totalExh += te; totalProd += tp;
+                csv += `${f.cantidad},"${f.formato}",${f.puExh},${f.puProd},${te},${tp}\n`;
+            });
+            csv += `,,,,"${totalExh}","${totalProd}"\n`;
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `media500_cotizacion_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click(); URL.revokeObjectURL(url);
+        }
+
+        function fmtARS(n) { return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+        function parseArg(str) {
+            if (!str) return 0;
+            // Limpiar: solo dígitos, comas y puntos
+            let s = str.replace(/[^0-9,.]/g, '');
+            if (!s) return 0;
+            // Si tiene coma y punto, la coma es separador de miles
+            if (s.includes(',') && s.includes('.')) {
+                s = s.replace(/\./g, '').replace(',', '.');
+            }
+            // Si tiene coma como último separador con exactamente 3 dígitos después, es separador de miles (formato argentino: 130.000)
+            else if (s.includes('.') && s.match(/\.\d{3}$/)) {
+                s = s.replace(/\./g, '');
+            }
+            // Si tiene coma con 1 o 2 dígitos después, es decimal
+            else if (s.includes(',') && s.match(/,\d{1,2}$/)) {
+                s = s.replace(',', '.');
+            }
+            // Si tiene coma con 3 dígitos después, es separador de miles argentino
+            else if (s.includes(',') && s.match(/,\d{3}$/)) {
+                s = s.replace(/,/g, '');
+            }
+            // Punto como separador de miles
+            else if (s.includes('.') && s.match(/\.\d{3}/)) {
+                s = s.replace(/\./g, '');
+            }
+            return parseFloat(s) || 0;
+        }
+
+        async function descargarImagen() {
+            if (filas.length === 0) { alert('No hay datos en la tabla para descargar.'); return; }
+            const tabla = document.querySelector('.table-card');
+            // Ocultar botones de eliminar para la captura
+            const botones = tabla.querySelectorAll('.btn-danger');
+            botones.forEach(b => b.style.display = 'none');
+            // Forzar fondo sólido
+            tabla.style.background = '#ffffff';
+            const canvas = await html2canvas(tabla, { backgroundColor: '#ffffff', scale: 2 });
+            // Restaurar botones y fondo
+            botones.forEach(b => b.style.display = '');
+            tabla.style.background = '';
+            const link = document.createElement('a');
+            link.download = `media500_cotizacion_${new Date().toISOString().slice(0,10)}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        renderizarTabla();
+    </script>
+</body>
+</html>
