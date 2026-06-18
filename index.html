@@ -1295,48 +1295,9 @@ document.querySelectorAll('.nav button').forEach(btn => btn.addEventListener('cl
 document.getElementById('phaseFilter').addEventListener('change', () => renderCalendar(allEvents));
 document.getElementById('datePicker').addEventListener('change', () => { document.querySelectorAll('#dateNav button').forEach(b => b.classList.toggle('active', b.dataset.date === document.getElementById('datePicker').value)); renderCalendar(allEvents); });
 
-// ─── PWA SERVICE WORKER (v4 - network-first, no stale cache) ───
-if ('serviceWorker' in navigator) {
-  // Kill any old service workers first
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    for (const reg of regs) reg.unregister();
-  }).finally(() => {
-    const swCode = `
-const CACHE = 'mundial2026-v4';
-const ESPN_HOST = 'site.api.espn.com';
-const CDN_HOSTS = ['unpkg.com', 'basemaps.cartocdn.com'];
-
-self.addEventListener('install', e => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', e => {
-  // Purge old caches
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
-  e.waitUntil(clients.claim());
-});
-
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  // For ESPN API and CDN assets: network-first, cache as fallback
-  if (url.hostname === ESPN_HOST || CDN_HOSTS.some(h => url.hostname.includes(h))) {
-    e.respondWith(
-      fetch(e.request).then(r => {
-        const clone = r.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-        return r;
-      }).catch(() => caches.match(e.request))
-    );
-    return;
-  }
-  // For our own HTML/JS: ALWAYS network-first, no cache serving
-  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-});
-`;
-    const blob = new Blob([swCode], {type: 'application/javascript'});
-    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
-  });
-}
+// ─── NO SERVICE WORKER (removed to prevent stale cache issues) ───
+// The page always loads fresh from the network.
+// To install as PWA, use "Add to Home Screen" from browser menu.
 
 // ─── START ───
 init();
