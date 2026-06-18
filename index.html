@@ -313,13 +313,7 @@
   .stadium-popup { font-family: var(--font); }
   .stadium-popup h4 { color: var(--gold); margin-bottom: 4px; font-weight: 700; }
   .stadium-popup p { margin: 2px 0; font-size: 0.82em; }
-  .live-stadium-marker {
-    background: #FF453A !important; width: 16px !important; height: 16px !important;
-    border-radius: 50% !important; border: 3px solid white !important;
-    box-shadow: 0 0 18px rgba(255,69,58,0.8) !important; animation: markerPulse 1.2s infinite !important;
-  }
-  @keyframes markerPulse { 0%,100%{box-shadow:0 0 12px rgba(255,69,58,0.5)} 50%{box-shadow:0 0 28px rgba(255,69,58,1)} }
-  .flag-overlay { opacity: 0.12; pointer-events: none; }
+  @keyframes greenPulse { 0%,100%{box-shadow:0 0 12px rgba(48,209,88,0.5);transform:scale(1)} 50%{box-shadow:0 0 28px rgba(48,209,88,1);transform:scale(1.15)} }
 
   /* CHART */
   .chart-container {
@@ -1183,9 +1177,9 @@ function renderStats(events) {
   container.innerHTML = html;
 }
 
-// ─── RENDER MAP (Leaflet interactive with flag overlays + live markers) ───
+// ─── RENDER MAP (Leaflet: GeoJSON country shapes + green live markers) ───
 let stadiumMap = null;
-let flagOverlays = [];
+let countryLayers = [];
 const STADIUM_COORDS = {
   'AT&T Stadium': [32.7473, -97.0945],
   'BC Place': [49.2767, -123.1120],
@@ -1205,18 +1199,23 @@ const STADIUM_COORDS = {
   'SoFi Stadium': [33.9534, -118.3390]
 };
 
-// Country flag image URLs (Wikimedia Commons, public domain)
-const FLAG_URLS = {
-  'United States': 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg',
-  'Canada': 'https://upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Canada_%28Pantone%29.svg',
-  'Mexico': 'https://upload.wikimedia.org/wikipedia/commons/f/fc/Flag_of_Mexico.svg'
-};
-
-// Approximate bounding boxes for flag overlays
-const COUNTRY_BOUNDS = {
-  'United States': [[24.5, -125], [49.5, -66]],
-  'Canada': [[49, -141], [72, -52]],
-  'Mexico': [[14.5, -118], [32.7, -86]]
+// Simplified GeoJSON polygons for USA, Canada, Mexico (continental outlines)
+const COUNTRY_GEOJSON = {
+  'United States': {
+    type: 'Feature',
+    properties: { name: 'United States', color: '#3C3B6E' },
+    geometry: { type: 'Polygon', coordinates: [[[-124.7,48.4],[-124.4,46.5],[-124.1,43.0],[-124.0,40.5],[-120.0,34.5],[-117.1,32.5],[-114.6,32.6],[-111.0,31.3],[-108.2,31.8],[-106.5,31.8],[-104.0,29.4],[-97.2,26.0],[-97.1,25.8],[-97.4,28.0],[-99.3,29.6],[-100.5,29.5],[-103.0,29.2],[-104.8,30.0],[-106.6,31.8],[-108.2,31.3],[-111.0,31.3],[-114.6,32.6],[-117.1,32.5],[-120.0,34.5],[-122.4,37.0],[-123.0,38.5],[-124.0,40.5],[-124.7,42.0],[-124.5,46.0],[-124.7,48.4]]] }
+  },
+  'Canada': {
+    type: 'Feature',
+    properties: { name: 'Canada', color: '#D52B1E' },
+    geometry: { type: 'Polygon', coordinates: [[[-141.0,60.0],[-137.0,59.5],[-132.0,54.5],[-130.0,54.0],[-128.0,51.0],[-124.0,49.0],[-123.0,49.0],[-117.0,49.0],[-110.0,49.0],[-105.0,49.0],[-95.0,49.0],[-82.5,42.0],[-82.0,41.7],[-79.0,43.0],[-76.0,44.0],[-70.0,45.0],[-67.0,45.0],[-65.0,47.5],[-64.0,48.0],[-60.0,47.0],[-57.0,47.0],[-55.0,52.0],[-56.0,53.0],[-60.0,55.0],[-64.0,60.0],[-70.0,63.0],[-80.0,65.0],[-85.0,68.0],[-95.0,70.0],[-105.0,72.0],[-120.0,70.0],[-135.0,68.0],[-141.0,60.0]]] }
+  },
+  'Mexico': {
+    type: 'Feature',
+    properties: { name: 'Mexico', color: '#006847' },
+    geometry: { type: 'Polygon', coordinates: [[[-117.1,32.5],[-114.6,32.6],[-111.0,31.3],[-108.2,31.8],[-106.5,31.8],[-104.0,29.4],[-97.2,26.0],[-97.1,25.8],[-97.4,28.0],[-99.3,29.6],[-100.5,29.5],[-103.0,29.2],[-104.8,30.0],[-106.6,31.8],[-108.2,31.3],[-111.0,31.3],[-114.6,32.6],[-117.1,32.5],[-117.0,32.5],[-115.0,29.5],[-112.0,27.0],[-110.0,24.0],[-108.0,22.5],[-105.0,21.0],[-102.0,19.5],[-99.0,18.5],[-96.0,19.0],[-93.0,17.5],[-91.0,16.0],[-90.0,15.5],[-88.0,16.0],[-87.0,18.0],[-88.0,20.0],[-90.0,21.0],[-92.0,20.5],[-94.0,18.5],[-96.0,19.0],[-99.0,18.5],[-102.0,19.5],[-105.0,21.0],[-108.0,22.5],[-110.0,24.0],[-112.0,27.0],[-115.0,29.5],[-117.0,32.5],[-117.1,32.5]]] }
+  }
 };
 
 function renderMap(events) {
@@ -1225,14 +1224,12 @@ function renderMap(events) {
 
   // Aggregate venue data + detect live matches
   const venueMap = {};
-  const now = new Date();
   for (const e of events) {
     const m = getMatchInfo(e);
     if (!m.venue) continue;
     if (!venueMap[m.venue]) venueMap[m.venue] = { name: m.venue, city: m.city, country: m.country, count: 0, attendance: 0, liveMatches: [] };
     venueMap[m.venue].count++;
     venueMap[m.venue].attendance += m.attendance || 0;
-    // Check if this match is live
     const status = m.status;
     if (status === 'STATUS_IN_PROGRESS' || status === 'STATUS_HALFTIME') {
       venueMap[m.venue].liveMatches.push({ t1: m.t1, t2: m.t2, s1: m.s1, s2: m.s2, clock: m.clock });
@@ -1241,15 +1238,17 @@ function renderMap(events) {
 
   // Destroy existing map if any
   if (stadiumMap) { stadiumMap.remove(); stadiumMap = null; }
-  flagOverlays.forEach(o => o.remove());
-  flagOverlays = [];
+  countryLayers.forEach(l => l.remove());
+  countryLayers = [];
 
   // Create Leaflet map centered on North America
   stadiumMap = L.map('mapContainer', {
     center: [39.5, -98],
     zoom: 4,
     zoomControl: true,
-    scrollWheelZoom: true
+    scrollWheelZoom: true,
+    maxBounds: [[15, -140], [72, -50]],
+    maxBoundsViscosity: 0.8
   });
 
   // Use dark/light tiles based on mode
@@ -1263,19 +1262,34 @@ function renderMap(events) {
     maxZoom: 19
   }).addTo(stadiumMap);
 
-  // Add flag overlays for USA, Canada, Mexico
-  for (const [country, bounds] of Object.entries(COUNTRY_BOUNDS)) {
-    const flagUrl = FLAG_URLS[country];
-    if (!flagUrl) continue;
-    const overlay = L.imageOverlay(flagUrl, bounds, {
-      opacity: 0.10,
-      className: 'flag-overlay',
+  // Add country shapes as GeoJSON polygons (follow real borders)
+  for (const [name, feature] of Object.entries(COUNTRY_GEOJSON)) {
+    const layer = L.geoJSON(feature, {
+      style: {
+        color: feature.properties.color,
+        weight: 1.5,
+        opacity: 0.5,
+        fillColor: feature.properties.color,
+        fillOpacity: 0.08
+      },
       interactive: false
     }).addTo(stadiumMap);
-    flagOverlays.push(overlay);
+    // Add subtle label
+    const bounds = layer.getBounds();
+    const center = bounds.getCenter();
+    L.marker(center, {
+      icon: L.divIcon({
+        className: 'country-label',
+        html: `<div style="font-size:14px;font-weight:700;color:${feature.properties.color};opacity:0.25;text-shadow:0 0 8px rgba(0,0,0,0.5);letter-spacing:2px;white-space:nowrap;">${name.toUpperCase()}</div>`,
+        iconSize: [200, 20],
+        iconAnchor: [100, 10]
+      }),
+      interactive: false
+    }).addTo(stadiumMap);
+    countryLayers.push(layer);
   }
 
-  // Custom gold marker icon
+  // Gold marker icon (normal stadiums)
   const goldIcon = L.divIcon({
     className: 'stadium-marker',
     html: '<div style="background:#C9A84C;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 14px rgba(201,168,76,0.6);"></div>',
@@ -1284,13 +1298,13 @@ function renderMap(events) {
     popupAnchor: [0, -10]
   });
 
-  // Live marker icon (red pulsing)
+  // GREEN live marker icon (pulsing green dot for live matches)
   const liveIcon = L.divIcon({
-    className: 'live-stadium-marker',
-    html: '<div class="live-stadium-marker"></div>',
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    popupAnchor: [0, -11]
+    className: 'live-stadium-marker-green',
+    html: '<div style="background:#30D158;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 0 20px rgba(48,209,88,0.9);animation:greenPulse 1s infinite;"></div>',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12]
   });
 
   // Add markers
@@ -1303,10 +1317,10 @@ function renderMap(events) {
 
     let liveHtml = '';
     if (hasLive) {
-      liveHtml = '<div style="margin-top:6px;padding:6px 8px;background:rgba(255,69,58,0.15);border-radius:8px;">';
+      liveHtml = '<div style="margin-top:8px;padding:8px 10px;background:rgba(48,209,88,0.12);border-radius:10px;border:1px solid rgba(48,209,88,0.25);">';
       for (const lm of v.liveMatches) {
-        liveHtml += `<div style="font-weight:700;color:#FF453A;font-size:0.85em;">🔴 EN VIVO · ${lm.clock}'</div>`;
-        liveHtml += `<div style="font-weight:600;">${lm.t1} <span style="color:#C9A84C;font-size:1.1em;">${lm.s1}</span> - <span style="color:#C9A84C;font-size:1.1em;">${lm.s2}</span> ${lm.t2}</div>`;
+        liveHtml += `<div style="font-weight:700;color:#30D158;font-size:0.9em;margin-bottom:4px;">🟢 EN VIVO · ${lm.clock}'</div>`;
+        liveHtml += `<div style="font-weight:600;font-size:0.95em;">${lm.t1} <span style="color:#C9A84C;font-size:1.15em;font-weight:700;">${lm.s1}</span> — <span style="color:#C9A84C;font-size:1.15em;font-weight:700;">${lm.s2}</span> ${lm.t2}</div>`;
       }
       liveHtml += '</div>';
     }
