@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏆 Mundial FIFA 2026 — Modo Mundial</title>
+<style>
+  :root {
+    --gold: #C8A951;
+    --gold-dark: #A8882E;
+    --grass: #1B5E20;
+    --grass-light: #2E7D32;
+    --pitch: #388E3C;
+    --white: #F5F5F0;
+    --dark: #1A1A1A;
+    --card: #252525;
+    --card-border: #333;
+    --live: #E53935;
+    --scheduled: #FFA726;
+    --finished: #66BB6A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(180deg, #0D1B0E 0%, #1B2A1C 30%, #1A3A1A 100%);
+    color: var(--white);
+    min-height: 100vh;
+    background-attachment: fixed;
+  }
+  /* Stadium pattern overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.015) 40px, rgba(255,255,255,0.015) 41px),
+      radial-gradient(ellipse at 50% 0%, rgba(200,169,81,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    padding: 30px 20px 20px;
+    background: linear-gradient(180deg, rgba(200,169,81,0.15) 0%, transparent 100%);
+    border-bottom: 2px solid var(--gold-dark);
+    margin-bottom: 20px;
+  }
+  .header .trophy { font-size: 60px; filter: drop-shadow(0 4px 8px rgba(200,169,81,0.4)); }
+  .header h1 {
+    font-size: 2.4em;
+    font-weight: 900;
+    background: linear-gradient(180deg, #E8C547 0%, #C8A951 50%, #A8882E 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    letter-spacing: 2px;
+  }
+  .header .subtitle {
+    color: #999;
+    font-size: 0.9em;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .header .dates {
+    color: var(--gold);
+    font-size: 1.1em;
+    margin-top: 5px;
+  }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 4px;
+    border: 1px solid var(--card-border);
+  }
+  .nav button {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    color: #999;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .nav button:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+  .nav button.active {
+    background: var(--gold-dark);
+    color: #1A1A1A;
+    box-shadow: 0 2px 8px rgba(200,169,81,0.3);
+  }
+
+  /* LIVE INDICATOR */
+  .live-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(229,57,53,0.15);
+    border: 1px solid rgba(229,57,53,0.3);
+    border-radius: 20px;
+    margin-bottom: 20px;
+    font-size: 0.85em;
+    color: #EF9A9A;
+  }
+  .live-dot {
+    width: 8px; height: 8px;
+    background: var(--live);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.5); }
+  }
+
+  /* SECTION */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* MATCH CARDS */
+  .match-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .match-card:hover {
+    border-color: var(--gold-dark);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .match-card.live {
+    border-left: 3px solid var(--live);
+    animation: liveGlow 2s infinite;
+  }
+  @keyframes liveGlow {
+    0%, 100% { box-shadow: 0 0 8px rgba(229,57,53,0.2); }
+    50% { box-shadow: 0 0 20px rgba(229,57,53,0.4); }
+  }
+  .match-card .group-tag {
+    position: absolute;
+    top: 12px; right: 16px;
+    background: var(--gold-dark);
+    color: #1A1A1A;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.75em;
+    font-weight: 700;
+  }
+  .match-card .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 0.75em;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .status-badge.live { background: var(--live); color: white; }
+  .status-badge.scheduled { background: var(--scheduled); color: #1A1A1A; }
+  .status-badge.finished { background: var(--finished); color: #1A1A1A; }
+  .match-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    font-size: 1.2em;
+    font-weight: 700;
+  }
+  .match-teams .team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 100px;
+  }
+  .match-teams .team .name { font-size: 0.9em; }
+  .match-teams .team .score {
+    font-size: 2em;
+    font-weight: 900;
+    color: var(--gold);
+  }
+  .match-teams .vs { color: #666; font-size: 0.8em; }
+  .match-info {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 0.8em;
+    color: #888;
+  }
+  .match-info .venue { color: #AAA; }
+  .match-info .time { color: var(--gold); font-weight: 600; }
+
+  /* CALENDAR */
+  .calendar-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .calendar-controls select, .calendar-controls input {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    color: var(--white);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9em;
+  }
+  .calendar-controls select:focus, .calendar-controls input:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+  .date-nav {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .date-nav button {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    color: #AAA;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: all 0.2s;
+  }
+  .date-nav button:hover, .date-nav button.active {
+    background: var(--gold-dark);
+    color: #1A1A1A;
+    border-color: var(--gold-dark);
+  }
+
+  /* GROUPS TABLE */
+  .groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .group-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .group-card h3 {
+    background: var(--gold-dark);
+    color: #1A1A1A;
+    padding: 10px 16px;
+    font-size: 1em;
+    font-weight: 800;
+    text-align: center;
+  }
+  .group-card table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
+  .group-card th {
+    background: rgba(255,255,255,0.05);
+    padding: 8px 6px;
+    text-align: center;
+    font-size: 0.75em;
+    color: #999;
+    text-transform: uppercase;
+  }
+  .group-card td {
+    padding: 8px 6px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .group-card .team-name { text-align: left; font-weight: 600; }
+  .group-card .qualified { color: var(--finished); font-weight: 700; }
+
+  /* STATS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-card .stat-value {
+    font-size: 2em;
+    font-weight: 900;
+    color: var(--gold);
+  }
+  .stat-card .stat-label {
+    font-size: 0.8em;
+    color: #999;
+    margin-top: 4px;
+  }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+  }
+  .loading .spinner {
+    display: inline-block;
+    width: 40px; height: 40px;
+    border: 3px solid rgba(200,169,81,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 20px;
+    color: #555;
+    font-size: 0.8em;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    margin-top: 30px;
+  }
+  .footer a { color: var(--gold); text-decoration: none; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.6em; }
+    .match-teams { font-size: 1em; gap: 10px; }
+    .match-teams .team .score { font-size: 1.5em; }
+    .nav button { font-size: 0.8em; padding: 10px 8px; }
+    .groups-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="trophy">🏆</div>
+    <h1>FIFA WORLD CUP 2026</h1>
+    <div class="subtitle">United States · Mexico · Canada</div>
+    <div class="dates">11 Junio — 19 Julio 2026</div>
+  </div>
+
+  <!-- LIVE BAR -->
+  <div class="live-bar" id="liveBar">
+    <div class="live-dot"></div>
+    <span>Datos en vivo · ESPN API · Auto-refresh 60s</span>
+    <span id="lastUpdate" style="font-size:0.75em;color:#888;"></span>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <button class="active" data-section="today">⚽ Hoy</button>
+    <button data-section="calendar">📅 Calendario</button>
+    <button data-section="groups">📊 Grupos</button>
+    <button data-section="stats">📈 Stats</button>
+  </nav>
+
+  <!-- TODAY SECTION -->
+  <section class="section active" id="today">
+    <div class="loading" id="todayLoading">
+      <div class="spinner"></div>
+      <p>Cargando partidos de hoy...</p>
+    </div>
+    <div id="todayContent"></div>
+  </section>
+
+  <!-- CALENDAR SECTION -->
+  <section class="section" id="calendar">
+    <div class="calendar-controls">
+      <select id="phaseFilter">
+        <option value="all">Todas las fases</option>
+        <option value="group">Fase de Grupos</option>
+        <option value="r32">Dieciseisavos</option>
+        <option value="r16">Octavos</option>
+        <option value="qf">Cuartos</option>
+        <option value="sf">Semifinales</option>
+        <option value="final">Final / 3er Puesto</option>
+      </select>
+      <input type="date" id="datePicker" title="Filtrar por fecha">
+      <button onclick="resetCalendarFilters()" style="background:var(--card);border:1px solid var(--card-border);color:var(--white);padding:8px 12px;border-radius:8px;cursor:pointer;">✕ Limpiar</button>
+    </div>
+    <div class="date-nav" id="dateNav"></div>
+    <div class="loading" id="calendarLoading">
+      <div class="spinner"></div>
+      <p>Cargando calendario...</p>
+    </div>
+    <div id="calendarContent"></div>
+  </section>
+
+  <!-- GROUPS SECTION -->
+  <section class="section" id="groups">
+    <div class="loading" id="groupsLoading">
+      <div class="spinner"></div>
+      <p>Calculando tablas de grupos...</p>
+    </div>
+    <div class="groups-grid" id="groupsContent"></div>
+  </section>
+
+  <!-- STATS SECTION -->
+  <section class="section" id="stats">
+    <div class="loading" id="statsLoading">
+      <div class="spinner"></div>
+      <p>Compilando estadísticas...</p>
+    </div>
+    <div id="statsContent"></div>
+  </section>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>Datos: <a href="https://www.espn.com/soccer/scoreboard/_/league/fifa.world" target="_blank">ESPN API</a> · 
+    Modo Mundial by <strong>Charles Darwin</strong> para <strong>Valentín Fabetti</strong> · Media 500</p>
+    <p style="font-size:0.7em;margin-top:4px;">Los horarios están en UTC. Argentina = UTC-3.</p>
+  </div>
+</div>
+
+<script>
+// ─── GLOBAL STATE ───
+let allEvents = [];
+let currentSection = 'today';
+let autoRefreshInterval = null;
+
+// ─── ESPN API ───
+const API_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world';
+const TOURNAMENT_START = '20260611';
+const TOURNAMENT_END = '20260719';
+
+async function fetchAllEvents() {
+  const url = `${API_BASE}/scoreboard?dates=${TOURNAMENT_START}-${TOURNAMENT_END}&limit=200`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  return data.events || [];
+}
+
+// ─── HELPERS ───
+function getMatchInfo(event) {
+  const comps = event.competitions?.[0] || {};
+  const teams = comps.competitors || [];
+  const status = event.status?.type || {};
+  const venue = comps.venue || {};
+  const t1 = teams[0]?.team?.displayName || 'TBD';
+  const t2 = teams[1]?.team?.displayName || 'TBD';
+  const s1 = teams[0]?.score || '0';
+  const s2 = teams[1]?.score || '0';
+  const abbr1 = teams[0]?.team?.abbreviation || t1.substring(0,3).toUpperCase();
+  const abbr2 = teams[1]?.team?.abbreviation || t2.substring(0,3).toUpperCase();
+  const groupNote = comps.altGameNote || '';
+  const group = groupNote.includes('Group') ? groupNote.split('Group ')[1]?.trim() : '';
+  const round = event.season?.slug || '';
+  const attendance = comps.attendance || 0;
+  const date = event.date || '';
+  const winner = teams[0]?.winner ? 't1' : (teams[1]?.winner ? 't2' : 'draw');
+  const advance_t1 = teams[0]?.advance || false;
+  const advance_t2 = teams[1]?.advance || false;
+  const form_t1 = teams[0]?.form || '';
+  const form_t2 = teams[1]?.form || '';
+  const odds = teams[0]?.odds || teams[1]?.odds || null;
+  return {
+    id: event.id, date, status: status.name || 'STATUS_SCHEDULED',
+    statusDetail: status.shortDetail || status.description || '',
+    completed: status.completed || false,
+    clock: comps.status?.displayClock || '',
+    period: comps.status?.period || 0,
+    t1, t2, s1, s2, abbr1, abbr2, group, round, venue: venue.fullName || '',
+    city: venue.address?.city || '', country: venue.address?.country || '',
+    attendance, winner, advance_t1, advance_t2, form_t1, form_t2, odds
+  };
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es-AR', { weekday:'short', day:'numeric', month:'short' });
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  // Convert UTC to Argentina (UTC-3)
+  const local = new Date(d.getTime() - 3*60*60*1000);
+  return local.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
+}
+
+function getStatusClass(status) {
+  if (status === 'STATUS_IN_PROGRESS' || status === 'STATUS_HALFTIME') return 'live';
+  if (status === 'STATUS_FULL_TIME' || status === 'STATUS_FINAL') return 'finished';
+  return 'scheduled';
+}
+
+function getStatusLabel(status, detail) {
+  if (status === 'STATUS_IN_PROGRESS') return '🔴 EN VIVO';
+  if (status === 'STATUS_HALFTIME') return '⏸️ ENTRE TIEMPO';
+  if (status === 'STATUS_FULL_TIME' || status === 'STATUS_FINAL') return '✅ Finalizado';
+  return '⏳ ' + (detail || 'Programado');
+}
+
+// ─── RENDER TODAY ───
+function renderToday(events) {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD in local
+  // But ESPN dates are UTC, so we need to compare properly
+  const now = new Date();
+  const todayUTC = now.toISOString().split('T')[0];
+  const tomorrowUTC = new Date(now.getTime() + 24*60*60*1000).toISOString().split('T')[0];
+
+  const todayMatches = events.filter(e => {
+    const d = e.date?.split('T')[0];
+    return d === todayUTC || d === tomorrowUTC; // include matches that span into next UTC day
+  });
+
+  // Also include matches from yesterday that might still be live
+  const yesterdayUTC = new Date(now.getTime() - 24*60*60*1000).toISOString().split('T')[0];
+  const recentMatches = events.filter(e => {
+    const d = e.date?.split('T')[0];
+    return d === yesterdayUTC && !e.status?.type?.completed;
+  });
+
+  const allToday = [...recentMatches, ...todayMatches].filter((e, i, arr) =>
+    arr.findIndex(x => x.id === e.id) === i
+  );
+
+  const container = document.getElementById('todayContent');
+  const loading = document.getElementById('todayLoading');
+  loading.style.display = 'none';
+
+  if (allToday.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#888;">
+        <div style="font-size:3em;">⚽</div>
+        <p style="font-size:1.2em;margin-top:10px;">No hay partidos programados para hoy</p>
+        <p style="font-size:0.9em;">Revisá el calendario para ver los próximos partidos</p>
+      </div>`;
+    return;
+  }
+
+  // Count live matches
+  const liveCount = allToday.filter(e => {
+    const s = e.status?.type?.name;
+    return s === 'STATUS_IN_PROGRESS' || s === 'STATUS_HALFTIME';
+  }).length;
+
+  let html = '';
+  if (liveCount > 0) {
+    html += `<div style="text-align:center;margin-bottom:16px;color:var(--live);font-weight:700;font-size:1.1em;">
+      🔴 ${liveCount} partido(s) en vivo ahora
+    </div>`;
+  }
+
+  html += `<h2 style="margin-bottom:12px;color:var(--gold);">📅 ${formatDate(new Date().toISOString())}</h2>`;
+
+  for (const e of allToday) {
+    const m = getMatchInfo(e);
+    const statusClass = getStatusClass(m.status);
+    const statusLabel = getStatusLabel(m.status, m.statusDetail);
+    const cardClass = statusClass === 'live' ? 'match-card live' : 'match-card';
+
+    html += `
+    <div class="${cardClass}">
+      ${m.group ? `<div class="group-tag">Grupo ${m.group}</div>` : ''}
+      <div class="status-badge ${statusClass}">${statusLabel} ${m.clock ? `· ${m.clock}'` : ''}</div>
+      <div class="match-teams">
+        <div class="team">
+          <div class="score">${m.s1}</div>
+          <div class="name">${m.t1} ${m.advance_t1 ? '✅' : ''}</div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="team">
+          <div class="score">${m.s2}</div>
+          <div class="name">${m.t2} ${m.advance_t2 ? '✅' : ''}</div>
+        </div>
+      </div>
+      <div class="match-info">
+        <span class="time">🕐 ${formatTime(m.date)} (ARG)</span> · 
+        <span class="venue">🏟️ ${m.venue}${m.city ? ', ' + m.city : ''}</span>
+        ${m.attendance > 0 ? ` · 👥 ${m.attendance.toLocaleString()}` : ''}
+      </div>
+    </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// ─── RENDER CALENDAR ───
+function renderCalendar(events) {
+  const container = document.getElementById('calendarContent');
+  const loading = document.getElementById('calendarLoading');
+  const dateNav = document.getElementById('dateNav');
+  loading.style.display = 'none';
+
+  // Build date navigation
+  const dates = [...new Set(events.map(e => e.date?.split('T')[0]).filter(Boolean))].sort();
+  let navHtml = '';
+  for (const d of dates) {
+    const formatted = formatDate(d + 'T12:00:00Z');
+    navHtml += `<button data-date="${d}" onclick="filterByDate('${d}')">${formatted}</button>`;
+  }
+  dateNav.innerHTML = navHtml;
+
+  // Apply filters
+  const phaseFilter = document.getElementById('phaseFilter').value;
+  const datePicker = document.getElementById('datePicker').value;
+
+  let filtered = events;
+  if (phaseFilter !== 'all') {
+    filtered = filtered.filter(e => {
+      const slug = e.season?.slug || '';
+      if (phaseFilter === 'group') return slug === 'group-stage';
+      if (phaseFilter === 'r32') return slug.includes('round-of-32');
+      if (phaseFilter === 'r16') return slug.includes('round-of-16');
+      if (phaseFilter === 'qf') return slug.includes('quarterfinal');
+      if (phaseFilter === 'sf') return slug.includes('semifinal');
+      if (phaseFilter === 'final') return slug.includes('final') || slug.includes('third-place');
+      return true;
+    });
+  }
+  if (datePicker) {
+    filtered = filtered.filter(e => e.date?.startsWith(datePicker));
+  }
+
+  // Group by date
+  const byDate = {};
+  for (const e of filtered) {
+    const d = e.date?.split('T')[0] || 'unknown';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(e);
+  }
+
+  let html = '';
+  for (const [date, matches] of Object.entries(byDate).sort()) {
+    html += `<h3 style="color:var(--gold);margin:16px 0 8px;font-size:1.1em;">📅 ${formatDate(date + 'T12:00:00Z')}</h3>`;
+    for (const e of matches) {
+      const m = getMatchInfo(e);
+      const statusClass = getStatusClass(m.status);
+      const statusLabel = getStatusLabel(m.status, m.statusDetail);
+      const cardClass = statusClass === 'live' ? 'match-card live' : 'match-card';
+
+      html += `
+      <div class="${cardClass}">
+        ${m.group ? `<div class="group-tag">Grupo ${m.group}</div>` : ''}
+        <div class="status-badge ${statusClass}">${statusLabel} ${m.clock ? `· ${m.clock}'` : ''}</div>
+        <div class="match-teams">
+          <div class="team">
+            <div class="score">${m.s1}</div>
+            <div class="name">${m.t1}</div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="team">
+            <div class="score">${m.s2}</div>
+            <div class="name">${m.t2}</div>
+          </div>
+        </div>
+        <div class="match-info">
+          <span class="time">🕐 ${formatTime(m.date)} (ARG)</span> · 
+          <span class="venue">🏟️ ${m.venue}${m.city ? ', ' + m.city : ''}</span>
+          ${m.attendance > 0 ? ` · 👥 ${m.attendance.toLocaleString()}` : ''}
+        </div>
+      </div>`;
+    }
+  }
+
+  if (filtered.length === 0) {
+    html = `<div style="text-align:center;padding:40px;color:#888;">No hay partidos con esos filtros</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function filterByDate(dateStr) {
+  document.getElementById('datePicker').value = dateStr;
+  // Highlight active date button
+  document.querySelectorAll('#dateNav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.date === dateStr);
+  });
+  renderCalendar(allEvents);
+}
+
+function resetCalendarFilters() {
+  document.getElementById('phaseFilter').value = 'all';
+  document.getElementById('datePicker').value = '';
+  document.querySelectorAll('#dateNav button').forEach(b => b.classList.remove('active'));
+  renderCalendar(allEvents);
+}
+
+// ─── RENDER GROUPS ───
+function renderGroups(events) {
+  const container = document.getElementById('groupsContent');
+  const loading = document.getElementById('groupsLoading');
+  loading.style.display = 'none';
+
+  // Extract groups from altGameNote
+  const groupMap = {};
+  for (const e of events) {
+    const m = getMatchInfo(e);
+    if (!m.group) continue;
+    if (!groupMap[m.group]) groupMap[m.group] = { teams: {}, matches: [] };
+    groupMap[m.group].matches.push(m);
+    // Register teams
+    if (!groupMap[m.group].teams[m.t1]) groupMap[m.group].teams[m.t1] = { name: m.t1, abbr: m.abbr1, pts: 0, gf: 0, gc: 0, played: 0, wins: 0, draws: 0, losses: 0 };
+    if (!groupMap[m.group].teams[m.t2]) groupMap[m.group].teams[m.t2] = { name: m.t2, abbr: m.abbr2, pts: 0, gf: 0, gc: 0, played: 0, wins: 0, draws: 0, losses: 0 };
+  }
+
+  // Calculate standings
+  for (const [grp, data] of Object.entries(groupMap)) {
+    for (const m of data.matches) {
+      if (!m.completed) continue;
+      const t1 = data.teams[m.t1];
+      const t2 = data.teams[m.t2];
+      if (!t1 || !t2) continue;
+      t1.played++; t2.played++;
+      t1.gf += parseInt(m.s1) || 0;
+      t1.gc += parseInt(m.s2) || 0;
+      t2.gf += parseInt(m.s2) || 0;
+      t2.gc += parseInt(m.s1) || 0;
+      if (m.winner === 't1') { t1.pts += 3; t1.wins++; t2.losses++; }
+      else if (m.winner === 't2') { t2.pts += 3; t2.wins++; t1.losses++; }
+      else { t1.pts += 1; t2.pts += 1; t1.draws++; t2.draws++; }
+    }
+  }
+
+  let html = '';
+  for (const [grp, data] of Object.entries(groupMap).sort()) {
+    const sorted = Object.values(data.teams).sort((a, b) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      const gdA = a.gf - a.gc;
+      const gdB = b.gf - b.gc;
+      if (gdB !== gdA) return gdB - gdA;
+      return b.gf - a.gf;
+    });
+
+    html += `<div class="group-card">
+      <h3>🏆 Grupo ${grp}</h3>
+      <table>
+        <tr><th>#</th><th class="team-name">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th></tr>`;
+    sorted.forEach((t, i) => {
+      const gd = t.gf - t.gc;
+      const qualified = i < 2 && t.played >= 2;
+      html += `<tr>
+        <td>${i+1}${qualified ? ' ⬆️' : ''}</td>
+        <td class="team-name ${qualified ? 'qualified' : ''}">${t.name}</td>
+        <td>${t.played}</td><td>${t.wins}</td><td>${t.draws}</td><td>${t.losses}</td>
+        <td>${t.gf}</td><td>${t.gc}</td><td>${gd >= 0 ? '+' : ''}${gd}</td>
+        <td><strong>${t.pts}</strong></td>
+      </tr>`;
+    });
+    html += `</table></div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// ─── RENDER STATS ───
+function renderStats(events) {
+  const container = document.getElementById('statsContent');
+  const loading = document.getElementById('statsLoading');
+  loading.style.display = 'none';
+
+  const completed = events.filter(e => e.status?.type?.completed);
+  const scheduled = events.filter(e => !e.status?.type?.completed);
+  const totalGoals = completed.reduce((sum, e) => {
+    const m = getMatchInfo(e);
+    return sum + (parseInt(m.s1)||0) + (parseInt(m.s2)||0);
+  }, 0);
+  const totalAttendance = completed.reduce((sum, e) => {
+    const m = getMatchInfo(e);
+    return sum + (m.attendance || 0);
+  }, 0);
+  const avgGoals = completed.length > 0 ? (totalGoals / completed.length).toFixed(1) : '0';
+
+  // Top scorers (teams)
+  const teamGoals = {};
+  for (const e of completed) {
+    const m = getMatchInfo(e);
+    teamGoals[m.t1] = (teamGoals[m.t1] || 0) + (parseInt(m.s1)||0);
+    teamGoals[m.t2] = (teamGoals[m.t2] || 0) + (parseInt(m.s2)||0);
+  }
+  const topTeams = Object.entries(teamGoals).sort((a,b) => b[1]-a[1]).slice(0,5);
+
+  // Venues
+  const venues = {};
+  for (const e of events) {
+    const m = getMatchInfo(e);
+    if (m.venue) venues[m.venue] = (venues[m.venue] || 0) + 1;
+  }
+  const topVenues = Object.entries(venues).sort((a,b) => b[1]-a[1]).slice(0,5);
+
+  let html = `
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value">${events.length}</div>
+      <div class="stat-label">Partidos Totales</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${completed.length}</div>
+      <div class="stat-label">Partidos Jugados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${scheduled.length}</div>
+      <div class="stat-label">Partidos Restantes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${totalGoals}</div>
+      <div class="stat-label">Goles Totales</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${avgGoals}</div>
+      <div class="stat-label">Promedio Goles/Partido</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${totalAttendance.toLocaleString()}</div>
+      <div class="stat-label">Espectadores Totales</div>
+    </div>
+  </div>
+
+  <h3 style="color:var(--gold);margin:24px 0 12px;">🔥 Equipos Más Goleadores</h3>
+  <div style="display:flex;flex-direction:column;gap:6px;">`;
+  for (const [team, goals] of topTeams) {
+    html += `<div style="display:flex;justify-content:space-between;background:var(--card);padding:8px 16px;border-radius:8px;border:1px solid var(--card-border);">
+      <span>${team}</span><span style="color:var(--gold);font-weight:700;">${goals} goles</span>
+    </div>`;
+  }
+  html += `</div>
+
+  <h3 style="color:var(--gold);margin:24px 0 12px;">🏟️ Estadios con Más Partidos</h3>
+  <div style="display:flex;flex-direction:column;gap:6px;">`;
+  for (const [venue, count] of topVenues) {
+    html += `<div style="display:flex;justify-content:space-between;background:var(--card);padding:8px 16px;border-radius:8px;border:1px solid var(--card-border);">
+      <span>${venue}</span><span style="color:var(--gold);font-weight:700;">${count} partidos</span>
+    </div>`;
+  }
+  html += `</div>`;
+
+  container.innerHTML = html;
+}
+
+// ─── NAVIGATION ───
+function switchSection(section) {
+  currentSection = section;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(section).classList.add('active');
+  document.querySelector(`[data-section="${section}"]`).classList.add('active');
+
+  if (section === 'calendar') renderCalendar(allEvents);
+  if (section === 'groups') renderGroups(allEvents);
+  if (section === 'stats') renderStats(allEvents);
+}
+
+// ─── INIT ───
+async function init() {
+  try {
+    allEvents = await fetchAllEvents();
+    console.log(`Loaded ${allEvents.length} events`);
+
+    // Render today
+    renderToday(allEvents);
+
+    // Pre-render other sections on demand
+    document.getElementById('calendarLoading').style.display = 'none';
+    document.getElementById('groupsLoading').style.display = 'none';
+    document.getElementById('statsLoading').style.display = 'none';
+
+    // Update time
+    document.getElementById('lastUpdate').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
+
+    // Auto-refresh every 60 seconds
+    autoRefreshInterval = setInterval(async () => {
+      try {
+        allEvents = await fetchAllEvents();
+        if (currentSection === 'today') renderToday(allEvents);
+        if (currentSection === 'calendar') renderCalendar(allEvents);
+        if (currentSection === 'groups') renderGroups(allEvents);
+        if (currentSection === 'stats') renderStats(allEvents);
+        document.getElementById('lastUpdate').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
+      } catch(e) { console.error('Refresh error:', e); }
+    }, 60000);
+
+  } catch (err) {
+    console.error('Init error:', err);
+    document.getElementById('todayLoading').innerHTML = '<p style="color:#E53935;">Error al cargar datos. Reintentando...</p>';
+    setTimeout(init, 5000);
+  }
+}
+
+// ─── EVENT LISTENERS ───
+document.querySelectorAll('.nav button').forEach(btn => {
+  btn.addEventListener('click', () => switchSection(btn.dataset.section));
+});
+
+document.getElementById('phaseFilter').addEventListener('change', () => renderCalendar(allEvents));
+document.getElementById('datePicker').addEventListener('change', () => {
+  document.querySelectorAll('#dateNav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.date === document.getElementById('datePicker').value);
+  });
+  renderCalendar(allEvents);
+});
+
+// ─── START ───
+init();
+</script>
+
+</body>
+</html>
